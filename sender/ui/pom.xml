@@ -24,25 +24,25 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.phenotips</groupId>
-    <artifactId>phenotips-clone-application</artifactId>
+    <artifactId>phenotips-clone-sender</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
-  <artifactId>phenotips-clone-receiver-ui</artifactId>
-  <name>PhenoTips - LIMS 24/7 Integration - Public clone - Documents providing the remote server data receiving functionality</name>
+  <artifactId>phenotips-clone-sender-ui</artifactId>
+  <name>PhenoTips - LIMS 24/7 Integration - Public clone - Documents providing the remote server registration UI</name>
   <packaging>xar</packaging>
 
   <properties>
     <!-- Don't run CLIRR here since there's no Java code. -->
     <xwiki.clirr.skip>true</xwiki.clirr.skip>
     <!-- Name to display by the Extension Manager -->
-    <xwiki.extension.name>Server synchronization - Destination UI</xwiki.extension.name>
+    <xwiki.extension.name>Server synchronization - Origin UI</xwiki.extension.name>
   </properties>
 
   <dependencies>
     <!-- Make sure the API is pulled as a dependency -->
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>phenotips-clone-receiver-api</artifactId>
+      <artifactId>phenotips-clone-sender-api</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
     </dependency>

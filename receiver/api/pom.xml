@@ -24,7 +24,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.phenotips</groupId>
-    <artifactId>phenotips-clone-application</artifactId>
+    <artifactId>phenotips-clone-receiver</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
   <artifactId>phenotips-clone-receiver-api</artifactId>

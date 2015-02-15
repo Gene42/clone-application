@@ -32,10 +32,43 @@
   <name>PhenoTips - Clone application</name>
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
+
+  <!-- We need to list repositories for finding the parent. Other settings will be correctly inherited from the parent. -->
+  <repositories>
+    <repository>
+      <id>phenotips-releases</id>
+      <name>PhenoTips Releases repository</name>
+      <url>https://nexus.phenotips.org/nexus/content/repositories/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>phenotips-snapshots</id>
+      <name>PhenoTips Snapshots repository</name>
+      <url>https://nexus.phenotips.org/nexus/content/repositories/snapshots/</url>
+      <releases>
+        <enabled>false</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
+    </repository>
+  </repositories>
+
+  <properties>
+    <phenotips.version>1.0.2</phenotips.version>
+  </properties>
+
   <modules>
-    <module>push</module>
-    <module>origin-ui</module>
-    <module>receive</module>
-    <module>destination-ui</module>
+    <module>sender</module>
+    <module>receiver</module>
   </modules>
 </project>
