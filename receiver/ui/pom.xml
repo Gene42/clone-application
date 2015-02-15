@@ -28,7 +28,7 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
   <artifactId>phenotips-clone-receiver-ui</artifactId>
-  <name>PhenoTips - LIMS 24/7 Integration - Public clone - Documents providing the remote server data receiving functionality</name>
+  <name>PhenoTips - Clone application - Receiver - Documents providing the remote server data receiving functionality</name>
   <packaging>xar</packaging>
 
   <properties>

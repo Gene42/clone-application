@@ -28,7 +28,7 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
   <artifactId>phenotips-clone-receiver-api</artifactId>
-  <name>PhenoTips - LIMS 24/7 Integration - Public clone - Receive into Public</name>
+  <name>PhenoTips - Clone application - Receiver - Java APIs</name>
   <dependencies>
     <dependency>
       <groupId>org.xwiki.commons</groupId>
