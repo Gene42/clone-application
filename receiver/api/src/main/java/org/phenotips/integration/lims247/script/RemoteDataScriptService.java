@@ -83,10 +83,19 @@ public class RemoteDataScriptService implements ScriptService
             if (isTrusted()) {
                 try {
                     @SuppressWarnings("deprecation")
-                    XWikiDocument doc = new XWikiDocument();
-                    doc.fromXML(context.getRequest().getInputStream());
-                    context.getWiki().saveDocument(doc, doc.getComment(), doc.isMinorEdit(), context);
-                    this.logger.debug("Imported [{}] from remote", doc.getDocumentReference());
+                    XWikiDocument xmlDoc = new XWikiDocument();
+                    xmlDoc.fromXML(context.getRequest().getInputStream());
+
+                    XWikiDocument existingDoc =
+                        context.getWiki().getDocument(xmlDoc.getDocumentReference(), context);
+
+                    if (!existingDoc.isNew()) {
+                        context.getWiki().deleteDocument(existingDoc, false, context);
+                        this.logger.debug("Deleted [{}] before importing from remote", existingDoc.getDocumentReference());
+                    }
+
+                    context.getWiki().saveDocument(xmlDoc, xmlDoc.getComment(), xmlDoc.isMinorEdit(), context);
+                    this.logger.debug("Imported [{}] from remote", xmlDoc.getDocumentReference());
                 } catch (IOException ex) {
                     // Shouldn't happen
                     this.logger.info("Error reading request: {}", ex.getMessage());
