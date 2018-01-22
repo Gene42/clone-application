@@ -24,6 +24,8 @@ import org.phenotips.data.events.PatientChangedEvent;
 import org.phenotips.data.events.PatientDeletedEvent;
 
 import org.xwiki.component.annotation.Component;
+import org.xwiki.component.phase.Initializable;
+import org.xwiki.configuration.ConfigurationSource;
 import org.xwiki.context.Execution;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.observation.AbstractEventListener;
@@ -31,14 +33,19 @@ import org.xwiki.observation.event.Event;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.http.Consts;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -53,6 +60,7 @@ import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
+import com.xpn.xwiki.util.AbstractXWikiRunnable;
 
 /**
  * Pushes updated (or deleted) patient records to remote PhenoTips instances.
@@ -62,11 +70,17 @@ import com.xpn.xwiki.objects.BaseObject;
 @Component
 @Named("pushDataToPublicClone")
 @Singleton
-public class RemoteSynchronizationEventListener extends AbstractEventListener
+public class RemoteSynchronizationEventListener extends AbstractEventListener implements Initializable
 {
     /** The content type of the data sent in a request. */
     private static final ContentType REQUEST_CONTENT_TYPE = ContentType.create(
         ContentType.APPLICATION_XML.getMimeType(), Consts.UTF_8);
+
+    /** The configuration property holding the request timeout duration. */
+    private static final String CONFIG_REQ_TIMEOUT_PROPNAME = "phenotips.remoteSynchronization.requestTimeoutSecs";
+
+    /** The name of the thread used for remote synchronization. */
+    private static final String REMOTE_SYNC_THREAD_NAME = "PhenoTips remote synchronization request";
 
     /** Logging helper object. */
     @Inject
@@ -76,13 +90,80 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener
     @Inject
     private Execution execution;
 
+    /** Provides access to configuration file values. */
+    @Inject
+    @Named("xwikiproperties")
+    private ConfigurationSource configuration;
+
     /** HTTP client used for communicating with the remote server. */
     private final CloseableHttpClient client = HttpClients.createSystem();
+
+    /** Thread executor used for asynchronous requests. */
+    private ExecutorService executor;
+
+    /** Holds HTTP request configuration to be used for different HTTP requests. */
+    private RequestConfig requestConfig;
+
+    /**
+     * Thread for individual asynchronous remote synchronization requests.
+     */
+    private class RemoteSynchronizationRequestThread extends AbstractXWikiRunnable {
+        /** Logging helper object. */
+        private Logger logger;
+
+        /** HTTP client used for communicating with the remote server. */
+        private final CloseableHttpClient client;
+
+        /** Request to send to the remote server. */
+        private final HttpPost request;
+
+        RemoteSynchronizationRequestThread(Logger logger, CloseableHttpClient client, HttpPost request) {
+            this.logger = logger;
+            this.client = client;
+            this.request = request;
+        }
+
+        @Override
+        public void runInternal() {
+            this.logger.debug("Sending patient clone request to [{}]", request.getURI());
+            try {
+                this.client.execute(this.request).close();
+                this.logger.debug("Finished patient clone request to [{}]", request.getURI());
+            } catch (Exception ex) {
+                this.logger.warn("Patient clone request failed: {}", ex.getMessage(), ex);
+            } finally {
+                if (request != null) {
+                    request.releaseConnection();
+                }
+            }
+        }
+    }
 
     /** Default constructor, sets up the listener name and the list of events to subscribe to. */
     public RemoteSynchronizationEventListener()
     {
         super("pushDataToPublicClone", new PatientChangedEvent(), new PatientDeletedEvent());
+    }
+
+    @Override
+    public void initialize()
+    {
+        String timeoutSecsVal = configuration.getProperty(CONFIG_REQ_TIMEOUT_PROPNAME);
+        Integer timeoutSecs = NumberUtils.createInteger(timeoutSecsVal);
+        RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+        if (timeoutSecs != null && timeoutSecs >= 0) {
+            requestConfigBuilder.setConnectTimeout(timeoutSecs * 1000);
+            requestConfigBuilder.setConnectionRequestTimeout(timeoutSecs * 1000);
+            requestConfigBuilder.setSocketTimeout(timeoutSecs * 1000);
+        }
+        this.requestConfig = requestConfigBuilder.build();
+
+        BasicThreadFactory factory = new BasicThreadFactory.Builder()
+            .namingPattern(this.REMOTE_SYNC_THREAD_NAME)
+            .daemon(false)
+            .priority(Thread.NORM_PRIORITY)
+            .build();
+        this.executor = Executors.newSingleThreadExecutor(factory);
     }
 
     @Override
@@ -151,21 +232,24 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener
      */
     private void submitData(String doc, BaseObject serverConfiguration)
     {
-        // FIXME This should be asynchronous; reimplement!
-        HttpPost method = null;
+        HttpPost request = null;
         try {
             String submitURL = getSubmitURL(serverConfiguration);
             if (StringUtils.isNotBlank(submitURL)) {
-                this.logger.debug("Pushing updated document to [{}]", submitURL);
-                method = new HttpPost(submitURL);
-                method.setEntity(new StringEntity(doc, REQUEST_CONTENT_TYPE));
-                this.client.execute(method).close();
+                this.logger.debug("Queueing patient clone to remote server [{}]", submitURL);
+                request = new HttpPost(submitURL);
+                request.setEntity(new StringEntity(doc, REQUEST_CONTENT_TYPE));
+                request.setConfig(this.requestConfig);
+
+                RemoteSynchronizationRequestThread remoteSynchronizationRequestThread =
+                    new RemoteSynchronizationRequestThread(this.logger, this.client, request);
+                executor.execute(remoteSynchronizationRequestThread);
             }
         } catch (Exception ex) {
-            this.logger.warn("Failed to notify remote server of patient update: {}", ex.getMessage(), ex);
+            this.logger.warn("Failed to queue patient clone to remote server: {}", ex.getMessage(), ex);
         } finally {
-            if (method != null) {
-                method.releaseConnection();
+            if (request != null) {
+                request.releaseConnection();
             }
         }
     }
@@ -178,22 +262,25 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener
      */
     private void deleteData(String doc, BaseObject serverConfiguration)
     {
-        // FIXME This should be asynchronous; reimplement!
-        HttpPost method = null;
+        HttpPost request = null;
         try {
             String deleteURL = getDeleteURL(serverConfiguration);
             if (StringUtils.isNotBlank(deleteURL)) {
-                this.logger.debug("Pushing deleted document to [{}]", deleteURL);
-                method = new HttpPost(deleteURL);
+                this.logger.debug("Queueing patient deletion to remote server [{}]", deleteURL);
+                request = new HttpPost(deleteURL);
                 NameValuePair data = new BasicNameValuePair("document", doc);
-                method.setEntity(new UrlEncodedFormEntity(Collections.singletonList(data), Consts.UTF_8));
-                this.client.execute(method).close();
+                request.setEntity(new UrlEncodedFormEntity(Collections.singletonList(data), Consts.UTF_8));
+                request.setConfig(this.requestConfig);
+
+                RemoteSynchronizationRequestThread remoteSynchronizationRequestThread =
+                    new RemoteSynchronizationRequestThread(this.logger, this.client, request);
+                executor.execute(remoteSynchronizationRequestThread);
             }
         } catch (Exception ex) {
-            this.logger.warn("Failed to notify remote server of patient removal: {}", ex.getMessage(), ex);
+            this.logger.warn("Failed to queue patient removal request to remote server: {}", ex.getMessage(), ex);
         } finally {
-            if (method != null) {
-                method.releaseConnection();
+            if (request != null) {
+                request.releaseConnection();
             }
         }
     }
