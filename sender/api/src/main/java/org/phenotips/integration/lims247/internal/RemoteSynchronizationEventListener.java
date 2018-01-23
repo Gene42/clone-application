@@ -136,7 +136,7 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
                 this.logger.warn("Remote sync request failed: {}", ex.getMessage(), ex);
             } finally {
                 if (request != null) {
-                    request.releaseConnection();
+                    this.request.releaseConnection();
                 }
             }
         }
