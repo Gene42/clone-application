@@ -258,10 +258,6 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
             }
         } catch (Exception ex) {
             this.logger.warn("Failed to queue patient update request to remote server: {}", ex.getMessage(), ex);
-        } finally {
-            if (request != null) {
-                request.releaseConnection();
-            }
         }
     }
 
@@ -293,10 +289,6 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
             }
         } catch (Exception ex) {
             this.logger.warn("Failed to queue patient removal request to remote server: {}", ex.getMessage(), ex);
-        } finally {
-            if (request != null) {
-                request.releaseConnection();
-            }
         }
     }
 
