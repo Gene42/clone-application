@@ -35,6 +35,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -99,7 +102,7 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
     private final CloseableHttpClient client = HttpClients.createSystem();
 
     /** Thread executor used for asynchronous requests. */
-    private ExecutorService executor;
+    private ThreadPoolExecutor executor;
 
     /** Holds HTTP request configuration to be used for different HTTP requests. */
     private RequestConfig requestConfig;
@@ -125,12 +128,12 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
 
         @Override
         public void runInternal() {
-            this.logger.debug("Sending patient clone request to [{}]", request.getURI());
+            this.logger.debug("Sending remote sync request to [{}]", request.getURI());
             try {
                 this.client.execute(this.request).close();
-                this.logger.debug("Finished patient clone request to [{}]", request.getURI());
+                this.logger.debug("Finished remote sync request to [{}]", request.getURI());
             } catch (Exception ex) {
-                this.logger.warn("Patient clone request failed: {}", ex.getMessage(), ex);
+                this.logger.warn("Remote sync request failed: {}", ex.getMessage(), ex);
             } finally {
                 if (request != null) {
                     request.releaseConnection();
@@ -159,11 +162,15 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
         this.requestConfig = requestConfigBuilder.build();
 
         BasicThreadFactory factory = new BasicThreadFactory.Builder()
-            .namingPattern(this.REMOTE_SYNC_THREAD_NAME)
+            .namingPattern(REMOTE_SYNC_THREAD_NAME)
             .daemon(false)
             .priority(Thread.NORM_PRIORITY)
             .build();
-        this.executor = Executors.newSingleThreadExecutor(factory);
+        // Instantiate the executor directly instead of using Executors.newSingleThreadExecutor() so that we can access
+        // the number of active and queued threads for debugging purposes.
+        this.executor = new ThreadPoolExecutor(1, 1,
+            0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>(), factory);
     }
 
     @Override
@@ -178,8 +185,8 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
 
     private void handleUpdate(XWikiDocument doc)
     {
+        this.logger.debug("Handling remote sync for updated document [{}]", doc.getDocumentReference());
         try {
-            this.logger.debug("Pushing updated document [{}]", doc.getDocumentReference());
             XWikiContext context = getXContext();
             String payload = doc.toXML(true, false, true, false, context);
             List<BaseObject> servers = getRegisteredServers(context);
@@ -195,7 +202,7 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
 
     private void handleDelete(XWikiDocument doc)
     {
-        this.logger.debug("Pushing deleted document [{}]", doc.getDocumentReference());
+        this.logger.debug("Handling remote sync for deleted document [{}]", doc.getDocumentReference());
         XWikiContext context = getXContext();
         List<BaseObject> servers = getRegisteredServers(context);
         if (servers != null && !servers.isEmpty()) {
@@ -236,7 +243,11 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
         try {
             String submitURL = getSubmitURL(serverConfiguration);
             if (StringUtils.isNotBlank(submitURL)) {
-                this.logger.debug("Queueing patient clone to remote server [{}]", submitURL);
+                if (this.logger.isDebugEnabled()) {
+                    this.logger.debug("Queueing patient update to remote server [{}] (current status: {} active " +
+                            "requests, {} queued requests)",
+                        submitURL, this.executor.getActiveCount(), this.executor.getQueue().size());
+                }
                 request = new HttpPost(submitURL);
                 request.setEntity(new StringEntity(doc, REQUEST_CONTENT_TYPE));
                 request.setConfig(this.requestConfig);
@@ -246,7 +257,7 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
                 executor.execute(remoteSynchronizationRequestThread);
             }
         } catch (Exception ex) {
-            this.logger.warn("Failed to queue patient clone to remote server: {}", ex.getMessage(), ex);
+            this.logger.warn("Failed to queue patient update request to remote server: {}", ex.getMessage(), ex);
         } finally {
             if (request != null) {
                 request.releaseConnection();
@@ -266,7 +277,11 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
         try {
             String deleteURL = getDeleteURL(serverConfiguration);
             if (StringUtils.isNotBlank(deleteURL)) {
-                this.logger.debug("Queueing patient deletion to remote server [{}]", deleteURL);
+                if (this.logger.isDebugEnabled()) {
+                    this.logger.debug("Queueing patient deletion to remote server [{}] (current status: {} active " +
+                            "requests, {} queued requests)",
+                        deleteURL, this.executor.getActiveCount(), this.executor.getQueue().size());
+                }
                 request = new HttpPost(deleteURL);
                 NameValuePair data = new BasicNameValuePair("document", doc);
                 request.setEntity(new UrlEncodedFormEntity(Collections.singletonList(data), Consts.UTF_8));
