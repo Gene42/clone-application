@@ -33,8 +33,6 @@ import org.xwiki.observation.event.Event;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -43,9 +41,9 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.http.Consts;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
@@ -85,6 +83,8 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
     /** The name of the thread used for remote synchronization. */
     private static final String REMOTE_SYNC_THREAD_NAME = "PhenoTips remote synchronization request";
 
+    private static final String REQUESTS_QUEUED_REQUESTS = "requests, {} queued requests)";
+
     /** Logging helper object. */
     @Inject
     private Logger logger;
@@ -110,7 +110,8 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
     /**
      * Thread for individual asynchronous remote synchronization requests.
      */
-    private class RemoteSynchronizationRequestThread extends AbstractXWikiRunnable {
+    private class RemoteSynchronizationRequestThread extends AbstractXWikiRunnable
+    {
         /** Logging helper object. */
         private Logger logger;
 
@@ -120,14 +121,16 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
         /** Request to send to the remote server. */
         private final HttpPost request;
 
-        RemoteSynchronizationRequestThread(Logger logger, CloseableHttpClient client, HttpPost request) {
+        RemoteSynchronizationRequestThread(Logger logger, CloseableHttpClient client, HttpPost request)
+        {
             this.logger = logger;
             this.client = client;
             this.request = request;
         }
 
         @Override
-        public void runInternal() {
+        public void runInternal()
+        {
             this.logger.debug("Sending remote sync request to [{}]", request.getURI());
             try {
                 this.client.execute(this.request).close();
@@ -244,8 +247,8 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
             String submitURL = getSubmitURL(serverConfiguration);
             if (StringUtils.isNotBlank(submitURL)) {
                 if (this.logger.isDebugEnabled()) {
-                    this.logger.debug("Queueing patient update to remote server [{}] (current status: {} active " +
-                            "requests, {} queued requests)",
+                    this.logger.debug("Queueing patient update to remote server [{}] (current status: {} active "
+                            + REQUESTS_QUEUED_REQUESTS,
                         submitURL, this.executor.getActiveCount(), this.executor.getQueue().size());
                 }
                 request = new HttpPost(submitURL);
@@ -274,8 +277,8 @@ public class RemoteSynchronizationEventListener extends AbstractEventListener im
             String deleteURL = getDeleteURL(serverConfiguration);
             if (StringUtils.isNotBlank(deleteURL)) {
                 if (this.logger.isDebugEnabled()) {
-                    this.logger.debug("Queueing patient deletion to remote server [{}] (current status: {} active " +
-                            "requests, {} queued requests)",
+                    this.logger.debug("Queueing patient deletion to remote server [{}] (current status: {} active "
+                            + REQUESTS_QUEUED_REQUESTS,
                         deleteURL, this.executor.getActiveCount(), this.executor.getQueue().size());
                 }
                 request = new HttpPost(deleteURL);

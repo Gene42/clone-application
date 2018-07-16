@@ -90,9 +90,11 @@ public class RemoteDataScriptService implements ScriptService
                         context.getWiki().getDocument(xmlDoc.getDocumentReference(), context);
 
                     if (!existingDoc.isNew()) {
-                        this.logger.debug("Deleting [{}] before importing from remote", existingDoc.getDocumentReference());
+                        this.logger
+                            .debug("Deleting [{}] before importing from remote", existingDoc.getDocumentReference());
                         context.getWiki().deleteDocument(existingDoc, false, context);
-                        this.logger.debug("Deleted [{}] before importing from remote", existingDoc.getDocumentReference());
+                        this.logger
+                            .debug("Deleted [{}] before importing from remote", existingDoc.getDocumentReference());
                     }
 
                     context.getWiki().saveDocument(xmlDoc, xmlDoc.getComment(), xmlDoc.isMinorEdit(), context);
