@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.phenotips</groupId>
     <artifactId>phenotips-clone-sender</artifactId>
-    <version>1.1-gene42</version>
+    <version>1.2-SNAPSHOT</version>
   </parent>
   <artifactId>phenotips-clone-sender-ui</artifactId>
   <name>PhenoTips - Clone application - Sender - Documents providing the remote server registration UI</name>
