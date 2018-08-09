@@ -18,18 +18,10 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.phenotips</groupId>
-    <artifactId>phenotips-clone-application</artifactId>
-    <version>1.0-SNAPSHOT</version>
-  </parent>
-  <artifactId>phenotips-clone-sender</artifactId>
-  <name>PhenoTips - Clone application - Sender</name>
-  <packaging>pom</packaging>
-  <modules>
-    <module>api</module>
-    <module>ui</module>
-  </modules>
-</project>
+<!DOCTYPE suppressions PUBLIC "-//Puppy Crawl//DTD Suppressions 1.1//EN"
+  "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
+
+<suppressions>
+  <suppress checks="ClassFanOutComplexity" files="RemoteSynchronizationEventListener.java" />
+  <suppress checks="ClassDataAbstractionCoupling" files="RemoteSynchronizationEventListener.java" />
+</suppressions>
