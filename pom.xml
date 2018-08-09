@@ -28,7 +28,7 @@
   </parent>
   <artifactId>phenotips-clone-application</artifactId>
   <name>PhenoTips - Clone application</name>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1-gene42</version>
   <packaging>pom</packaging>
 
   <repositories>
@@ -104,4 +104,8 @@
     <module>sender</module>
     <module>receiver</module>
   </modules>
+
+  <scm>
+    <tag>phenotips-clone-application-1.1-gene42</tag>
+  </scm>
 </project>
