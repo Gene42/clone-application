@@ -31,7 +31,6 @@
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <!-- We need to list repositories for finding the parent. Other settings will be correctly inherited from the parent. -->
   <repositories>
     <repository>
       <id>phenotips-releases</id>
@@ -59,7 +58,47 @@
         <checksumPolicy>fail</checksumPolicy>
       </snapshots>
     </repository>
+
+    <repository>
+      <id>gene42-nexus-private</id>
+      <name>Gene42 PhenoTips Private repository</name>
+      <url>https://nexus.gene42.com/repository/gene42-private-group/</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>gene42-nexus-public</id>
+      <name>Gene42 PhenoTips Public repository</name>
+      <url>https://nexus.gene42.com/repository/gene42-public-group/</url>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
+    </repository>
   </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>gene42-nexus</id>
+      <name>Maven2 Remote Repository for Releases</name>
+      <url>https://nexus.gene42.com/repository/gene42-public-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>gene42-nexus</id>
+      <name>Maven2 Development Repository for Snapshots</name>
+      <url>https://nexus.gene42.com/repository/gene42-public-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <modules>
     <module>sender</module>
