@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.phenotips</groupId>
     <artifactId>phenotips-clone-receiver</artifactId>
-    <version>1.1-gene42</version>
+    <version>1.2-SNAPSHOT</version>
   </parent>
   <artifactId>phenotips-clone-receiver-api</artifactId>
   <name>PhenoTips - Clone application - Receiver - Java APIs</name>
