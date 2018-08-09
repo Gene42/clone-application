@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.phenotips</groupId>
     <artifactId>phenotips-clone-receiver</artifactId>
-    <version>1.2-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
   </parent>
   <artifactId>phenotips-clone-receiver-ui</artifactId>
   <name>PhenoTips - Clone application - Receiver - Documents providing the remote server data receiving functionality</name>

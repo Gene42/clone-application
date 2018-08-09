@@ -28,7 +28,7 @@
   </parent>
   <artifactId>phenotips-clone-application</artifactId>
   <name>PhenoTips - Clone application</name>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <!-- We need to list repositories for finding the parent. Other settings will be correctly inherited from the parent. -->
